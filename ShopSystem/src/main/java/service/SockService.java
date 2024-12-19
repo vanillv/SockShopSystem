@@ -2,14 +2,13 @@ package service;
 
 import entity.SockEntity;
 import exception.InsufficientSockStockException;
+import exception.SockNotFoundException;
 import model.SockDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
-import org.webjars.NotFoundException;
 import repository.SockRepository;
 import util.ExcelParser;
-
 import javax.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
@@ -62,7 +61,7 @@ public class SockService {
             throw new IllegalArgumentException("Cotton percentage must be between 0 and 100");
         }
         SockEntity sock = sockRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Sock with id " + id + " not found"));
+                .orElseThrow(() -> new SockNotFoundException("Sock with id " + id + " not found"));
         sock.setColor(color);
         sock.setCottonPercentage(cottonPercentage);
         sock.setQuantity(quantity);
@@ -71,14 +70,16 @@ public class SockService {
     }
     @Transactional
     public void uploadSocksBatch(MultipartFile file) {
+        log.info("Uploading socks batch from file: {}", file.getOriginalFilename());
         List<SockDto> socks = ExcelParser.parseExcelFile(file);
         for (SockDto sockDto : socks) {
             SockEntity sockEntity = sockRepository.findByColorAndCottonPercentage(sockDto.getColor(), sockDto.getCottonPercentage())
                     .orElse(new SockEntity(sockDto.getColor(), sockDto.getCottonPercentage(), 0));
-
             sockEntity.setQuantity(sockEntity.getQuantity() + sockDto.getQuantity());
             sockRepository.save(sockEntity);
+            log.debug("Sock entry updated/created: {}", sockEntity);
         }
+        log.info("uploaded socks in a batch from Excel file");
     }
     private void validateOperator(String operator) {
         if (!operator.equals("equal") && !operator.equals("moreThan") && !operator.equals("lessThan")) {

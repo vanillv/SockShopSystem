@@ -1,5 +1,4 @@
 package controller;
-
 import model.SockDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,8 +9,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import service.SockService;
 
-import java.util.List;
-
 @Controller
 
 @RequestMapping("/api/socks")
@@ -20,51 +17,54 @@ public class SockShopController {
     private SockService sockService;
     Logger log = LoggerFactory.getLogger(SockShopController.class);
     @PostMapping("/income")
-    public ResponseEntity<SockDto> registerIncome(@RequestParam String color,
-                                                  @RequestParam Integer cottonPercentage,
-                                                  @RequestParam Integer quantity) {
+    public ResponseEntity<?> registerIncome(@RequestParam String color,
+                                            @RequestParam Integer cottonPercentage,
+                                            @RequestParam Integer quantity) {
+        log.info("controller: registering income: color={}, cottonPercentage={}, quantity={}", color, cottonPercentage, quantity);
         SockDto increasedSock = sockService.registerIncome(color, cottonPercentage, quantity);
+        log.debug("controller: income registered successfully: {}", increasedSock);
         return ResponseEntity.ok(increasedSock);
     }
+
     @PostMapping("/outcome")
-    public ResponseEntity<SockDto> registerOutcome(@RequestParam String color,
-                                                   @RequestParam Integer cottonPercentage,
-                                                   Integer quantity) {
+    public ResponseEntity<?> registerOutcome(@RequestParam String color,
+                                             @RequestParam Integer cottonPercentage,
+                                             @RequestParam Integer quantity) {
+        log.info("controller: registering outcome: color={}, cottonPercentage={}, quantity={}", color, cottonPercentage, quantity);
         SockDto decreasedSock = sockService.registerOutcome(color, cottonPercentage, quantity);
+        log.debug("controller: outcome registered successfully: {}", decreasedSock);
         return ResponseEntity.ok(decreasedSock);
     }
+
     @GetMapping
-    public ResponseEntity<Integer> getFilteredSockCount(@RequestParam(defaultValue = "all") String color,
-                                                        @RequestParam String comparisonOperator,
-                                                        @RequestParam Integer cottonPercentage) {
+    public ResponseEntity<?> getFilteredSockCount(@RequestParam(defaultValue = "all") String color,
+                                                  @RequestParam String comparisonOperator,
+                                                  @RequestParam Integer cottonPercentage) {
+        log.info("controller: retrieving filtered sock count: color={}, operator={}, cottonPercentage={}", color, comparisonOperator, cottonPercentage);
         int count = sockService.getFilteredSockCount(color, comparisonOperator, cottonPercentage);
+        log.debug("controller: filtered sock count returned: {}", count);
         return ResponseEntity.ok(count);
     }
+
     @PutMapping("/{id}")
-    public ResponseEntity<SockDto> updateSock(
-            @PathVariable Long id,
-            @RequestParam String color,
-            @RequestParam int cottonPercentage,
-            @RequestParam int quantity) {
+    public ResponseEntity<?> updateSock(@PathVariable Long id,
+                                        @RequestParam String color,
+                                        @RequestParam int cottonPercentage,
+                                        @RequestParam int quantity) {
+        log.info("controller: updating sock: id={}", id);
         SockDto updatedSock = sockService.updateSock(id, color, cottonPercentage, quantity);
+        log.debug("controller: sock updated successfully: {}", updatedSock);
         return ResponseEntity.ok(updatedSock);
     }
     @PostMapping("/batch")
     public ResponseEntity<String> uploadSockBatch(@RequestParam("file") MultipartFile file) {
-        return ResponseEntity.ok("Batch upload processed successfully.");
-    }
-    @PostMapping("/batch")
-    public ResponseEntity<String> uploadSocksBatch(@RequestParam("file") MultipartFile file) {
+        log.info("controller: uploading sock batch file: {}", file.getOriginalFilename());
         if (file.isEmpty()) {
+            log.warn("controller: uploaded file is empty");
             return ResponseEntity.badRequest().body("File must not be empty");
         }
-        try {
-            sockService.uploadSocksBatch(file);
-            return ResponseEntity.ok("Socks batch uploaded successfully");
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
-        } catch (RuntimeException e) {
-            return ResponseEntity.internalServerError().body("An error occurred while processing the file");
-        }
+        sockService.uploadSocksBatch(file);
+        log.info("controller: Sock batch upload processed successfully");
+        return ResponseEntity.ok("Socks batch uploaded successfully");
     }
 }
